@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-
 	"github.com/alkeshnikalje/gator-go/internal/config"
 )
 
@@ -10,6 +9,6 @@ import (
 func main () {
 	cfg := config.Read()
 	cfg.SetUser("Alkesh")
-	cfgAgain := config.Read()
-	fmt.Println(cfgAgain)
+	cfg = config.Read()
+	fmt.Println(cfg)
 }

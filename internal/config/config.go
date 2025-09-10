@@ -7,6 +7,19 @@ import (
 	"fmt"
 )
 
+const configFileName = "gatorconfig.json"
+
+func getConfigFilePath() (string,error) {	
+	currDir,err := os.Getwd()
+	if err != nil {
+		fmt.Println("Error getting home dir:", err)
+        return "",err
+	}
+	
+	filePath := filepath.Join(currDir,"gatorconfig.json")
+	return filePath,nil
+}
+
 type Config struct {
 	DbUrl				string 		`json:"db_url"`
 	CurrentUserName		string		`json:"current_user_name"`
@@ -14,13 +27,11 @@ type Config struct {
 
 
 func Read() Config {
-	currDir,err := os.Getwd()
+
+	filePath,err := getConfigFilePath()
 	if err != nil {
-		fmt.Println("Error getting home dir:", err)
-        return Config{}
+		return Config{}
 	}
-	
-	filePath := filepath.Join(currDir,"gatorconfig.json")
 
 	file,err := os.Open(filePath)
 	if err != nil {
@@ -39,16 +50,26 @@ func Read() Config {
 	return config 
 }
 
+func write(cfg Config) error {
+	filePath,err := getConfigFilePath()
+	if err != nil {
+		return err
+	}
+	data,err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		fmt.Println("error marshaling the config",err)
+	}
+	err = os.WriteFile(filePath, data, 0644)
+    if err != nil {
+        fmt.Println("Error writing file:", err) 
+		return err
+    }
+	return nil
+}
 
 func (cfg Config) SetUser(username string) {
 	cfg.CurrentUserName = username
-	curDir, _ := os.Getwd()
-	filePath := filepath.Join(curDir, "gatorconfig.json")
-	data, _ := json.MarshalIndent(cfg, "", "  ")
-	err := os.WriteFile(filePath, data, 0644)
-    if err != nil {
-        fmt.Println("Error writing file:", err) 
-    }
+	write(cfg)
 }
 
 
