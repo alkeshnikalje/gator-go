@@ -7,7 +7,7 @@ import (
 	"fmt"
 )
 
-const configFileName = "gatorconfig.json"
+const configFileName = ".gatorconfig.json"
 
 func getConfigFilePath() (string,error) {	
 	currDir,err := os.Getwd()
@@ -16,7 +16,7 @@ func getConfigFilePath() (string,error) {
         return "",err
 	}
 	
-	filePath := filepath.Join(currDir,"gatorconfig.json")
+	filePath := filepath.Join(currDir,configFileName)
 	return filePath,nil
 }
 
@@ -61,15 +61,19 @@ func write(cfg Config) error {
 	}
 	err = os.WriteFile(filePath, data, 0644)
     if err != nil {
-        fmt.Println("Error writing file:", err) 
-		return err
+		return fmt.Errorf("failed to write file: %w", err)
     }
 	return nil
 }
 
-func (cfg Config) SetUser(username string) {
+func (cfg Config) SetUser(username string) error {
 	cfg.CurrentUserName = username
-	write(cfg)
+	err := write(cfg)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 
