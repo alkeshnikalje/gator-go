@@ -82,6 +82,40 @@ func handlerLogin(s *state,cmd command) error {
 	return nil
 }
 
+func handlerReset(s *state,cmd command) error {
+	ctx := context.Background()
+
+	err := s.db.DeleteUsers(ctx)
+	if err != nil {
+		log.Fatal("error deleting users",err)
+	}
+	fmt.Println("users table has been reset successfully")
+	return nil
+}
+
+func handlerUsers(s *state, cmd command) error {
+	ctx := context.Background()
+	
+	users,err := s.db.GetUsers(ctx)
+	if err != nil {
+		log.Fatal("error getting users",err)
+	}
+
+	if len(users) == 0 {
+		fmt.Println("No users found")
+		os.Exit(1)
+	}
+
+	for _,user := range users {
+		if user.Name == s.cfg.CurrentUserName {
+			fmt.Println("*", user.Name,"(current)")
+		}else{
+			fmt.Println("*",user.Name)
+		}
+	}
+	return nil
+}
+
 type commands struct {
 	commandHandlers 	map[string]func (*state,command) error
 }
@@ -124,6 +158,8 @@ func main () {
 
 	cmds.register("login",handlerLogin)
 	cmds.register("register",handlerRegister)
+	cmds.register("users",handlerUsers)
+	cmds.register("reset",handlerReset)
     args := os.Args
     if len(args) < 2 {
         fmt.Println("No arguments provided")
