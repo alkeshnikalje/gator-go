@@ -3,11 +3,15 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"time"
+	"html"
 
 	"github.com/google/uuid"
 
@@ -116,6 +120,17 @@ func handlerUsers(s *state, cmd command) error {
 	return nil
 }
 
+func handlerAgg(s *state,cmd command) error {
+	url := "https://www.wagslane.dev/index.xml"
+	ctx := context.Background()
+	rssFeed,err := fetchFeed(ctx,url)
+	if err != nil {
+		return err
+	}
+	fmt.Println(rssFeed)
+	return nil
+}
+
 type commands struct {
 	commandHandlers 	map[string]func (*state,command) error
 }
@@ -134,6 +149,47 @@ func (c *commands) register(name string, f func(*state,command) error) {
 	if !exists {
 		c.commandHandlers[name] = f
 	}
+}
+
+func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed,error) {
+	req,err := http.NewRequestWithContext(ctx,"GET",feedURL,nil)
+	if err != nil {
+		fmt.Println("error creating request",err)
+		return &RSSFeed{},err
+	}
+	req.Header.Set("User-Agent", "gator")
+	client := &http.Client{}
+	resp,err := client.Do(req)
+	if err != nil {
+		fmt.Println("error making a request",err)
+		return &RSSFeed{},err
+	}
+	defer resp.Body.Close()
+	
+	data,err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("error reading response body",err) 
+		return &RSSFeed{},err
+	}
+
+	var rss RSSFeed
+	err = xml.Unmarshal(data,&rss)
+	if err != nil {
+		fmt.Println("error unmarshaling xml",err)
+		return &RSSFeed{},err
+	}
+
+	// Decode HTML entities in channel title & description
+	rss.Channel.Title = html.UnescapeString(rss.Channel.Title)
+	rss.Channel.Description = html.UnescapeString(rss.Channel.Description)		
+
+	// Decode HTML entities in each item
+	for i := range rss.Channel.Item {
+    	rss.Channel.Item[i].Title = html.UnescapeString(rss.Channel.Item[i].Title)
+    	rss.Channel.Item[i].Description = html.UnescapeString(rss.Channel.Item[i].Description)
+	}
+
+	return &rss,nil
 }
 
 func main () {
@@ -160,6 +216,7 @@ func main () {
 	cmds.register("register",handlerRegister)
 	cmds.register("users",handlerUsers)
 	cmds.register("reset",handlerReset)
+	cmds.register("agg",handlerAgg)
     args := os.Args
     if len(args) < 2 {
         fmt.Println("No arguments provided")
