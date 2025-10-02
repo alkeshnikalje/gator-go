@@ -131,6 +131,35 @@ func handlerAgg(s *state,cmd command) error {
 	return nil
 }
 
+func handlerAddFeed(s *state,cmd command) error {
+	ctx := context.Background()
+	user,err := s.db.GetUser(ctx,s.cfg.CurrentUserName)		
+	if err != nil {
+		return err
+	}
+
+	if len(cmd.args) < 2 {
+		log.Fatal("not enough arguments were provided.")
+	}
+	
+	// Create params for new feed
+    arg := database.CreateFeedParams{
+        ID:        uuid.New(),
+    	Name:      cmd.args[0],
+		Url:       cmd.args[1],
+		UserID:    user.ID,
+    }
+
+	feed,err := s.db.CreateFeed(ctx,arg)
+	if err != nil {
+		fmt.Println("error creating a feed",err)
+		return err
+	}
+	fmt.Println(feed)
+	return nil
+
+}
+
 type commands struct {
 	commandHandlers 	map[string]func (*state,command) error
 }
@@ -217,6 +246,7 @@ func main () {
 	cmds.register("users",handlerUsers)
 	cmds.register("reset",handlerReset)
 	cmds.register("agg",handlerAgg)
+	cmds.register("addfeed",handlerAddFeed)
     args := os.Args
     if len(args) < 2 {
         fmt.Println("No arguments provided")
