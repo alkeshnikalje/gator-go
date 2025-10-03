@@ -160,6 +160,24 @@ func handlerAddFeed(s *state,cmd command) error {
 
 }
 
+func handlerFeeds(s *state,cmd command) error {
+	if len(cmd.args) > 0 {
+		log.Fatal("feeds command needs to be used without any args.")
+		return nil
+	}
+	ctx := context.Background()
+
+	feeds,err := s.db.GetFeeds(ctx)
+	if err != nil {
+		return err
+	}
+	for _,feed := range feeds {
+		fmt.Println(feed)
+	}
+	return nil
+} 
+
+
 type commands struct {
 	commandHandlers 	map[string]func (*state,command) error
 }
@@ -247,6 +265,7 @@ func main () {
 	cmds.register("reset",handlerReset)
 	cmds.register("agg",handlerAgg)
 	cmds.register("addfeed",handlerAddFeed)
+	cmds.register("feeds",handlerFeeds)
     args := os.Args
     if len(args) < 2 {
         fmt.Println("No arguments provided")
